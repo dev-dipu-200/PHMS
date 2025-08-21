@@ -13,7 +13,7 @@ DB_FILE = "medicines.db"
 
 
 class MedicinesWindow:
-    def __init__(self, master, app):
+    def __init__(self, master, app=None):
         self.master = master
         self.app = app
         self.master.title("Medicine Management")
@@ -76,8 +76,12 @@ class MedicinesWindow:
         header = ttk.Frame(self.master)
         header.pack(fill='x', padx=12, pady=10)
         ttk.Label(header, text="Medicine Management", font=("TkDefaultFont", 16)).pack(side='left')
-        back_btn = ttk.Button(header, text="Close", command=self.master.destroy)
+        back_btn = ttk.Button(header, text="Back To Main", command=self.master.destroy)
         back_btn.pack(side='right')
+
+        # Summary (stock analysis)
+        self.summary_label = ttk.Label(self.master, text="", font=("TkDefaultFont", 12), foreground="blue")
+        self.summary_label.pack(fill='x', padx=12, pady=(0, 6))
 
         # Search and action row
         controls = ttk.Frame(self.master)
@@ -124,6 +128,22 @@ class MedicinesWindow:
         ttk.Button(btns, text="Edit Selected", command=self.edit_selected).pack(side='left', padx=4)
         ttk.Button(btns, text="Delete Selected", command=self.delete_selected).pack(side='left', padx=4)
 
+    # -------------------- Summary --------------------
+    def update_summary(self):
+        cur = self.conn.cursor()
+        # Total medicines
+        cur.execute("SELECT COUNT(*) FROM medicines")
+        total = cur.fetchone()[0]
+
+        # Expired medicines (expiry < today)
+        today = date.today().strftime("%Y-%m-%d")
+        cur.execute("SELECT COUNT(*) FROM medicines WHERE expiry < ?", (today,))
+        expired = cur.fetchone()[0]
+
+        self.summary_label.config(
+            text=f"📦 Total Medicines: {total}   ⏳ Expired: {expired}"
+        )
+
     # -------------------- Data load --------------------
     def load_medicines(self, search_query=""):
         for r in self.tree.get_children():
@@ -139,6 +159,9 @@ class MedicinesWindow:
             display = (row[0], row[1], row[2], f"{float(row[3]):.2f}", row[4], row[5])
             self.tree.insert('', 'end', values=display)
 
+        # ✅ update summary
+        self.update_summary()
+
     def clear_search(self):
         self.search_entry.delete(0, tk.END)
         self.load_medicines()
@@ -146,7 +169,7 @@ class MedicinesWindow:
     def search_medicines(self):
         self.load_medicines(self.search_entry.get().strip())
 
-    # -------------------- Dialogs (responsive, safe) --------------------
+    # -------------------- Dialogs --------------------
     def _center_window(self, win, w=480, h=320):
         win.update_idletasks()
         sw = win.winfo_screenwidth(); sh = win.winfo_screenheight()
@@ -206,7 +229,6 @@ class MedicinesWindow:
         self._create_form_dialog("Edit Medicine", values=vals, save_callback=self._update_existing)
 
     def _open_calendar(self, parent, target_entry):
-        # Lazy import: reduces chance of crashing at import time
         try:
             from tkcalendar import Calendar
         except Exception as e:
@@ -314,3 +336,9 @@ class MedicinesWindow:
             messagebox.showinfo("Export", "Exported successfully")
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+
+# if __name__ == "__main__":
+#     root = tk.Tk()
+#     app = MedicinesWindow(root)
+#     root.mainloop()
