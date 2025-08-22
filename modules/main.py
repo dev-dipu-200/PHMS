@@ -1,6 +1,4 @@
-import tkinter as tk
-from tkinter import ttk
-from tkinter import font as tkfont
+import customtkinter as ctk
 import time
 
 
@@ -9,46 +7,44 @@ class MainWindow:
         self.master = master
         self.app = app
 
-        # Colors & Fonts
+        # Theme
+        ctk.set_appearance_mode("light")
+        ctk.set_default_color_theme("blue")
+
+        # Configure window
+        self.master.title("PharmaCare Management System")
+        self.master.geometry("1100x700")
+
+        # Colors
         self.primary_color = "#3498db"
         self.secondary_color = "#9b59b6"
         self.accent_color = "#e67e22"
         self.success_color = "#27ae60"
 
-        self.title_font = tkfont.Font(size=18, weight="bold")
-        self.header_font = tkfont.Font(size=14, weight="bold")
-        self.normal_font = tkfont.Font(size=11)
-
-        # Configure window
-        self.master.title("PharmaCare Management System")
-        self.master.geometry("1100x760")
-        self.master.configure(bg="white")
-
-        # Apply ttk styles
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("TFrame", background="white")
-        style.configure("TLabel", background="white", font=self.normal_font)
-        style.configure("Title.TLabel", font=self.title_font, foreground=self.primary_color, background="white")
-        style.configure("Primary.TButton", font=self.normal_font, padding=6, relief="flat")
-
         # Build UI
         self.setup_ui()
 
     def setup_ui(self):
-        # Header
-        header_frame = ttk.Frame(self.master, style="TFrame")
-        header_frame.pack(fill="x", padx=20, pady=10)
+        # ===== Header =====
+        header_frame = ctk.CTkFrame(self.master, fg_color="white")
+        header_frame.pack(fill="x", padx=10, pady=10)
 
-        title_label = ttk.Label(header_frame, text="PharmaCare Management System", style="Title.TLabel")
+        title_label = ctk.CTkLabel(
+            header_frame,
+            text="PharmaCare Management System",
+            text_color=self.primary_color,
+            font=ctk.CTkFont(size=20, weight="bold"),
+            pady=10,
+            padx=10
+        )
         title_label.pack(side="left")
 
-        self.time_label = ttk.Label(header_frame, text="", style="TLabel")
+        self.time_label = ctk.CTkLabel(header_frame, text="", font=ctk.CTkFont(size=14), pady=10, padx=10)
         self.time_label.pack(side="right")
         self.update_time()
 
-        # Navigation - Row 1
-        nav_frame = ttk.Frame(self.master, style="TFrame")
+        # ===== Navigation Row 1 =====
+        nav_frame = ctk.CTkFrame(self.master, fg_color="white")
         nav_frame.pack(fill="x", padx=20, pady=10)
 
         buttons = [
@@ -59,36 +55,36 @@ class MainWindow:
             ("⚙️ Settings", self.app.show_settings_window),
         ]
         for text, command in buttons:
-            btn = ttk.Button(nav_frame, text=text, command=command, style="Primary.TButton")
-            btn.pack(side="left", padx=5)
+            ctk.CTkButton(nav_frame, text=text, command=command).pack(side="left", padx=5)
 
-        # Navigation - Row 2 (new buttons you requested)
-        bar = ttk.Frame(self.master, style="TFrame")
+        # ===== Navigation Row 2 =====
+        bar = ctk.CTkFrame(self.master, fg_color="white")
         bar.pack(fill="x", padx=20, pady=5)
 
-        ttk.Button(bar, text="👥 Customers", command=self.app.show_customers_window,
-                   style="Primary.TButton").pack(side=tk.LEFT, padx=4)
-        ttk.Button(bar, text="🏢 Suppliers", command=self.app.show_suppliers_window,
-                   style="Primary.TButton").pack(side=tk.LEFT, padx=4)
-        ttk.Button(bar, text="🛒 Purchases", command=self.app.show_purchases_window,
-                   style="Primary.TButton").pack(side=tk.LEFT, padx=4)
-        ttk.Button(bar, text="📜 Prescriptions", command=self.app.show_prescriptions_window,
-                   style="Primary.TButton").pack(side=tk.LEFT, padx=4)
-        ttk.Button(bar, text="💳 Payments", command=self.app.show_payments_window,
-                   style="Primary.TButton").pack(side=tk.LEFT, padx=4)
-        ttk.Button(bar, text="👤 Users", command=self.app.show_users_window,
-                   style="Primary.TButton").pack(side=tk.LEFT, padx=4)
+        second_buttons = [
+            ("👥 Customers", self.app.show_customers_window),
+            ("🏢 Suppliers", self.app.show_suppliers_window),
+            ("🛒 Purchases", self.app.show_purchases_window),
+            ("📜 Prescriptions", self.app.show_prescriptions_window),
+            ("💳 Payments", self.app.show_payments_window),
+            ("👤 Users", self.app.show_users_window),
+        ]
+        for text, command in second_buttons:
+            ctk.CTkButton(bar, text=text, command=command).pack(side="left", padx=4)
 
-        # Content
-        content_frame = ttk.Frame(self.master, style="TFrame")
+        # ===== Content =====
+        content_frame = ctk.CTkFrame(self.master, fg_color="white")
         content_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        welcome_label = ttk.Label(content_frame, text="Welcome to PharmaCare Management System",
-                                  font=self.header_font)
+        welcome_label = ctk.CTkLabel(
+            content_frame,
+            text="Welcome to PharmaCare Management System",
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
         welcome_label.pack(pady=20)
 
-        # Stats Section
-        stats_frame = ttk.Frame(content_frame, style="TFrame")
+        # ===== Stats Section =====
+        stats_frame = ctk.CTkFrame(content_frame, fg_color="white")
         stats_frame.pack(fill="x", pady=10)
 
         stats = [
@@ -98,16 +94,23 @@ class MainWindow:
             ("Total Sales", "$12,580", self.secondary_color),
         ]
         for i, (title, value, color) in enumerate(stats):
-            stat_frame = ttk.Frame(stats_frame, relief="raised", borderwidth=1)
+            stat_frame = ctk.CTkFrame(stats_frame, border_width=1, corner_radius=8)
             stat_frame.grid(row=0, column=i, padx=10, pady=10, sticky="nsew")
-            stats_frame.columnconfigure(i, weight=1)
-            ttk.Label(stat_frame, text=title, font=self.normal_font).pack(padx=10, pady=(10, 5))
-            ttk.Label(stat_frame, text=value,
-                      font=tkfont.Font(size=16, weight="bold"), foreground=color).pack(padx=10, pady=(5, 10))
+            stats_frame.grid_columnconfigure(i, weight=1)
 
-        # Recent Activity
-        activity_frame = ttk.LabelFrame(content_frame, text="Recent Activity", padding=10)
+            ctk.CTkLabel(stat_frame, text=title, font=ctk.CTkFont(size=13)).pack(padx=10, pady=(10, 5))
+            ctk.CTkLabel(
+                stat_frame, text=value,
+                font=ctk.CTkFont(size=18, weight="bold"),
+                text_color=color
+            ).pack(padx=10, pady=(5, 10))
+
+        # ===== Recent Activity =====
+        activity_frame = ctk.CTkFrame(content_frame, corner_radius=8)
         activity_frame.pack(fill="both", expand=True, pady=10)
+
+        ctk.CTkLabel(activity_frame, text="Recent Activity",
+                     font=ctk.CTkFont(size=15, weight="bold")).pack(anchor="w", padx=10, pady=5)
 
         activities = [
             "Sold 2 packs of Paracetamol to John Doe",
@@ -117,31 +120,9 @@ class MainWindow:
             "Low stock alert for Vitamin C tablets",
         ]
         for activity in activities:
-            ttk.Label(activity_frame, text=f"• {activity}", style="TLabel").pack(anchor="w", pady=2)
+            ctk.CTkLabel(activity_frame, text=f"• {activity}", anchor="w").pack(anchor="w", padx=20, pady=2)
 
     def update_time(self):
-        """Update time label every second"""
         current_time = time.strftime("%H:%M:%S %p")
-        self.time_label.config(text=current_time)
+        self.time_label.configure(text=current_time)
         self.master.after(1000, self.update_time)
-
-
-# # Run directly for testing
-# if __name__ == "__main__":
-#     class DummyApp:
-#         def show_medicines_window(self): print("Medicines Window")
-#         def show_sales_window(self): print("Sales Window")
-#         def show_inventory_window(self): print("Inventory Window")
-#         def show_reports_window(self): print("Reports Window")
-#         def show_settings_window(self): print("Settings Window")
-#         def show_customers_window(self): print("Customers Window")
-#         def show_suppliers_window(self): print("Suppliers Window")
-#         def show_purchases_window(self): print("Purchases Window")
-#         def show_prescriptions_window(self): print("Prescriptions Window")
-#         def show_payments_window(self): print("Payments Window")
-#         def show_users_window(self): print("Users Window")
-
-#     root = tk.Tk()
-#     app = DummyApp()
-#     MainWindow(root, app)
-#     root.mainloop()

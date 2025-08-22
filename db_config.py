@@ -37,16 +37,16 @@ def init_db():
     cur.execute("""
     CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
+        name TEXT NOT NULL DEFAULT 'Test',
+        category TEXT NOT NULL DEFAULT 'General',
         manufacturer TEXT,
         batch_number TEXT,
-        product_mrp REAL NOT NULL,
-        product_price REAL NOT NULL,
-        product_unit_price REAL NOT NULL,
+        product_mrp REAL NOT NULL DEFAULT 0,
+        product_price REAL NOT NULL DEFAULT 0,
+        product_unit_price REAL NOT NULL DEFAULT 0,
         packing_size TEXT,
         product_unit TEXT,
-        product_expiry TEXT NOT NULL,
+        product_expiry TEXT NOT NULL DEFAULT '2026-12-31',
         created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     )

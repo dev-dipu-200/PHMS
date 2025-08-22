@@ -3,12 +3,11 @@
 import faulthandler
 faulthandler.enable()
 
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk, messagebox, filedialog
 import csv
 from datetime import datetime, date
 
-# utils functions: execute_query, fetch_one, fetch_all
 from utils import execute_query, fetch_one, fetch_all
 
 
@@ -19,7 +18,7 @@ class MedicinesWindow:
         self.master.title("Medicine Management")
         self.master.geometry("1000x640")
         self.master.minsize(900, 560)
-        self.master.configure(bg='#f5f7fb')
+        ctk.set_appearance_mode("light")
 
         # UI
         self.setup_ui()
@@ -33,84 +32,68 @@ class MedicinesWindow:
 
     # -------------------- DB helpers --------------------
     def seed_if_empty(self):
-        """Insert sample products if products table is empty."""
         row = fetch_one("SELECT COUNT(*) AS cnt FROM products")
-        cnt = 0
-        if row and "cnt" in row:
-            cnt = int(row["cnt"])
-        elif row and len(row) > 0:
-            # fallback if row is a tuple-like dict
-            cnt = int(list(row.values())[0])
+        cnt = int(row["cnt"]) if row and "cnt" in row else (int(list(row.values())[0]) if row else 0)
         if cnt == 0:
             sample = [
-                ('M001', 'Paracetamol', 'Pain Relief', 5.99, 120, '2026-12-31'),
-                ('M002', 'Amoxicillin', 'Antibiotic', 12.50, 45, '2026-10-15'),
-                ('M003', 'Vitamin C', 'Supplements', 8.75, 12, '2026-03-20'),
+                ('M001', 'Paracetamol', 'Pain Relief', 5.99, '2026-12-31'),
+                ('M002', 'Amoxicillin', 'Antibiotic', 12.50, '2026-10-15'),
+                ('M003', 'Vitamin C', 'Supplements', 8.75, '2026-03-20'),
             ]
             try:
-                # many=True because we are inserting multiple rows
-                execute_query("INSERT OR IGNORE INTO products (id,name,category,product_mrp,expiry) VALUES (?,?,?,?,?,?)",
-                              sample, many=True)
+                execute_query(
+                    "INSERT OR IGNORE INTO products (id,name,category,product_mrp,product_expiry) VALUES (?,?,?,?,?)",
+                    sample, many=True
+                )
             except Exception as e:
-                # don't block UI, but inform in console
                 print("Seed products failed:", e)
 
     def get_next_id(self) -> str:
-        """Generate next product id like M001, M002..."""
         row = fetch_one("SELECT id FROM products WHERE id LIKE 'M%' "
                         "ORDER BY CAST(SUBSTR(id,2) AS INTEGER) DESC LIMIT 1")
         last_id = None
         if row:
-            # row may be dict-like
-            if isinstance(row, dict) and "id" in row:
-                last_id = row["id"]
-            else:
-                # fallback: first value
-                vals = list(row.values())
-                if vals:
-                    last_id = vals[0]
+            last_id = row.get("id") if isinstance(row, dict) else list(row.values())[0]
         if not last_id:
             return "M001"
         try:
             num = int(last_id[1:]) + 1
         except Exception:
-            # fallback if parsing fails
             num = 1
         return f"M{num:03d}"
 
     # -------------------- UI --------------------
     def setup_ui(self):
-        header = ttk.Frame(self.master)
+        # Header
+        header = ctk.CTkFrame(self.master, fg_color="transparent")
         header.pack(fill='x', padx=12, pady=10)
-        ttk.Label(header, text="Medicine Management", font=("TkDefaultFont", 16)).pack(side='left')
-        back_btn = ttk.Button(header, text="Back To Main", command=self.master.destroy)
-        back_btn.pack(side='right')
 
-        # # Summary (stock analysis)
-        # self.summary_label = ttk.Label(self.master, text="", font=("TkDefaultFont", 12), foreground="blue")
-        # self.summary_label.pack(fill='x', padx=12, pady=(0, 6))
+        ctk.CTkLabel(header, text="💊 Medicine Management",
+                     font=ctk.CTkFont(size=18, weight="bold")).pack(side='left')
+        ctk.CTkButton(header, text="Back To Main", command=self.master.destroy).pack(side='right')
 
-        # Search and action row
-        controls = ttk.Frame(self.master)
+        # Controls
+        controls = ctk.CTkFrame(self.master, fg_color="transparent")
         controls.pack(fill='x', padx=12, pady=(0, 8))
-        ttk.Label(controls, text="Search:").pack(side='left')
-        self.search_entry = ttk.Entry(controls, width=30)
+
+        ctk.CTkLabel(controls, text="Search:").pack(side='left')
+        self.search_entry = ctk.CTkEntry(controls, width=200, placeholder_text="Name or Category")
         self.search_entry.pack(side='left', padx=6)
         self.search_entry.bind("<Return>", lambda e: self.search_medicines())
-        ttk.Button(controls, text="Search", command=self.search_medicines).pack(side='left', padx=4)
-        ttk.Button(controls, text="Clear", command=self.clear_search).pack(side='left', padx=4)
-        ttk.Button(controls, text="Add New", command=self.add_medicine_dialog).pack(side='right', padx=4)
-        ttk.Button(controls, text="Export CSV", command=self.export_csv).pack(side='right', padx=4)
+        ctk.CTkButton(controls, text="Search", command=self.search_medicines).pack(side='left', padx=4)
+        ctk.CTkButton(controls, text="Clear", command=self.clear_search).pack(side='left', padx=4)
+        ctk.CTkButton(controls, text="Add New", command=self.add_medicine_dialog).pack(side='right', padx=4)
+        ctk.CTkButton(controls, text="Export CSV", command=self.export_csv).pack(side='right', padx=4)
 
-        # Treeview
-        container = ttk.Frame(self.master)
+        # Table container
+        container = ctk.CTkFrame(self.master)
         container.pack(fill='both', expand=True, padx=12, pady=6)
 
-        columns = ('id', 'name', 'category', 'product_mrp', 'expiry')
+        columns = ('id', 'name', 'category', 'product_mrp', 'product_expiry')
         self.tree = ttk.Treeview(container, columns=columns, show='headings', selectmode='browse')
         headings = {
             'id': 'ID', 'name': 'Medicine Name', 'category': 'Category',
-            'product_mrp': 'MRP', 'expiry': 'Expiry Date'
+            'product_mrp': 'MRP', 'product_expiry': 'Expiry Date'
         }
         for c, h in headings.items():
             self.tree.heading(c, text=h)
@@ -119,7 +102,7 @@ class MedicinesWindow:
         self.tree.column('name', width=260, anchor='w')
         self.tree.column('category', width=160, anchor='w')
         self.tree.column('product_mrp', width=100, anchor='e')
-        self.tree.column('expiry', width=120, anchor='center')
+        self.tree.column('product_expiry', width=120, anchor='center')
 
         vsb = ttk.Scrollbar(container, orient='vertical', command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)
@@ -129,119 +112,77 @@ class MedicinesWindow:
         self.tree.bind("<Double-1>", lambda e: self.edit_selected())
 
         # Buttons
-        btns = ttk.Frame(self.master)
+        btns = ctk.CTkFrame(self.master, fg_color="transparent")
         btns.pack(fill='x', padx=12, pady=8)
-        ttk.Button(btns, text="Edit Selected", command=self.edit_selected).pack(side='left', padx=4)
-        ttk.Button(btns, text="Delete Selected", command=self.delete_selected).pack(side='left', padx=4)
-
-    # -------------------- Summary --------------------
-    def update_summary(self):
-        # Total medicines
-        row = fetch_one("SELECT COUNT(*) AS cnt FROM products")
-        total = int(row["cnt"]) if row and "cnt" in row else (int(list(row.values())[0]) if row else 0)
-
-        # Expired medicines (expiry < today)
-        today = date.today().strftime("%Y-%m-%d")
-        row2 = fetch_one("SELECT COUNT(*) AS cnt FROM products WHERE expiry < ?", (today,))
-        expired = int(row2["cnt"]) if row2 and "cnt" in row2 else (int(list(row2.values())[0]) if row2 else 0)
-
-        self.summary_label.config(
-            text=f"📦 Total Products: {total}   ⏳ Expired: {expired}"
-        )
+        ctk.CTkButton(btns, text="Edit Selected", command=self.edit_selected).pack(side='left', padx=4)
+        ctk.CTkButton(btns, text="Delete Selected", command=self.delete_selected).pack(side='left', padx=4)
 
     # -------------------- Data load --------------------
     def load_medicines(self, search_query=""):
-        # clear tree
-        for r in self.tree.get_children():
-            self.tree.delete(r)
-
+        self.tree.delete(*self.tree.get_children())
         if search_query:
             like = f"%{search_query}%"
-            rows = fetch_all("SELECT id,name,category,product_mrp,expiry FROM products "
-                             "WHERE name LIKE ? OR category LIKE ? ORDER BY id ASC", (like, like))
+            rows = fetch_all(
+                "SELECT id,name,category,product_mrp,product_expiry FROM products "
+                "WHERE name LIKE ? OR category LIKE ? ORDER BY id ASC", (like, like)
+            )
         else:
-            rows = fetch_all("SELECT id,name,category,product_mrp,expiry FROM products ORDER BY id ASC")
+            rows = fetch_all("SELECT id,name,category,product_mrp,product_expiry FROM products ORDER BY id ASC")
 
-        # rows are list of dicts (fetch_all), but be robust if they're tuples
         for row in rows:
             if isinstance(row, dict):
                 display = (row.get("id"), row.get("name"), row.get("category"),
-                           f"{float(row.get('product_mrp',0)):.2f}", row.get("expiry"))
+                           f"{float(row.get('product_mrp',0)):.2f}", row.get("product_expiry"))
             else:
-                # assume tuple-like
-                display = (row[0], row[1], row[2], f"{float(row[3]):.2f}", row[4], row[5])
+                display = (row[0], row[1], row[2], f"{float(row[3]):.2f}", row[4])
             self.tree.insert('', 'end', values=display)
 
-        # update summary
-        self.update_summary()
-
     def clear_search(self):
-        self.search_entry.delete(0, tk.END)
+        self.search_entry.delete(0, 'end')
         self.load_medicines()
 
     def search_medicines(self):
         self.load_medicines(self.search_entry.get().strip())
 
     # -------------------- Dialogs --------------------
-    def _center_window(self, win, w=480, h=320):
-        win.update_idletasks()
-        sw = win.winfo_screenwidth(); sh = win.winfo_screenheight()
-        x = (sw - w) // 2; y = (sh - h) // 2
-        win.geometry(f"{w}x{h}+{x}+{y}")
-
     def _create_form_dialog(self, title, values=None, save_callback=None):
-        dialog = tk.Toplevel(self.master)
+        dialog = ctk.CTkToplevel(self.master)
         dialog.title(title)
-        dialog.resizable(True, True)
-        self._center_window(dialog, 520, 360)
-        dialog.grab_set()
+        dialog.geometry("500x350")
+        # dialog.grab_set()
 
-        frame = ttk.Frame(dialog, padding=12)
-        frame.pack(fill='both', expand=True)
+        frame = ctk.CTkFrame(dialog)
+        frame.pack(fill='both', expand=True, padx=12, pady=12)
 
-        labels = ["ID", "Name", "Category", "MRP", "Packing", "Unit", "Expiry (YYYY-MM-DD)"]
+        labels = ["ID", "Name", "Category", "MRP", "Expiry"]
         entries = {}
         for i, lbl in enumerate(labels):
-            ttk.Label(frame, text=lbl).grid(row=i, column=0, sticky='e', padx=6, pady=6)
-            ent = ttk.Entry(frame)
+            ctk.CTkLabel(frame, text=lbl).grid(row=i, column=0, sticky='e', padx=6, pady=6)
+            ent = ctk.CTkEntry(frame)
             ent.grid(row=i, column=1, sticky='ew', padx=6, pady=6)
             entries[lbl] = ent
         frame.columnconfigure(1, weight=1)
 
-        # Calendar button (lazy import)
-        cal_btn = ttk.Button(frame, text="Calendar", command=lambda: self._open_calendar(dialog, entries[labels[-1]]))
-        cal_btn.grid(row=len(labels)-1, column=2, padx=6, pady=6)
-
         if values:
-            # values might be tuple from treeview or dict-like
-            if isinstance(values, dict):
-                entries["ID"].insert(0, values.get("id"))
-                entries["Name"].insert(0, values.get("name"))
-                entries["Category"].insert(0, values.get("category"))
-                entries["MRP"].insert(0, values.get("product_mrp", 0))
-                entries["Expiry (YYYY-MM-DD)"].insert(0, values.get("expiry"))
-            else:
-                entries["ID"].insert(0, values[0]); entries["ID"].config(state='readonly')
-                entries["Name"].insert(0, values[1])
-                entries["Category"].insert(0, values[2])
-                entries["MRP"].insert(0, values[3])
-                entries["Expiry (YYYY-MM-DD)"].insert(0, values[4])
-            entries["ID"].config(state='readonly')
+            entries["ID"].insert(0, values["id"]); entries["ID"].configure(state="disabled")
+            entries["Name"].insert(0, values["name"])
+            entries["Category"].insert(0, values["category"])
+            entries["MRP"].insert(0, values["product_mrp"])
+            entries["Expiry"].insert(0, values["product_expiry"])
         else:
             new_id = self.get_next_id()
             entries["ID"].insert(0, new_id)
-            entries["ID"].config(state='readonly')
+            entries["ID"].configure(state="disabled")
 
-        btn_frame = ttk.Frame(dialog)
+        btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
         btn_frame.pack(fill='x', padx=12, pady=(6,12))
-        ttk.Button(btn_frame, text="Cancel", command=dialog.destroy).pack(side='right', padx=6)
+        ctk.CTkButton(btn_frame, text="Cancel", command=dialog.destroy).pack(side='right', padx=6)
         action_text = "Update" if values else "Save"
-        ttk.Button(btn_frame, text=action_text, command=lambda: save_callback(entries, dialog)).pack(side='right', padx=6)
-
-        return dialog
+        ctk.CTkButton(btn_frame, text=action_text,
+                      command=lambda: save_callback(entries, dialog)).pack(side='right', padx=6)
 
     def add_medicine_dialog(self):
-        self._create_form_dialog("Add Medicine", values=None, save_callback=self._save_new)
+        self._create_form_dialog("Add Medicine", save_callback=self._save_new)
 
     def edit_selected(self):
         sel = self.tree.selection()
@@ -249,29 +190,9 @@ class MedicinesWindow:
             messagebox.showwarning("Warning", "No item selected")
             return
         vals = self.tree.item(sel[0], 'values')
-        # convert to dict for form convenience
         values = {"id": vals[0], "name": vals[1], "category": vals[2],
-                  "price": vals[3], "expiry": vals[4],}
+                  "product_mrp": vals[3], "product_expiry": vals[4]}
         self._create_form_dialog("Edit Medicine", values=values, save_callback=self._update_existing)
-
-    def _open_calendar(self, parent, target_entry):
-        try:
-            from tkcalendar import Calendar
-        except Exception as e:
-            messagebox.showerror("Calendar Error", f"tkcalendar not available:\n{e}")
-            return
-
-        cal_win = tk.Toplevel(parent)
-        cal_win.title("Choose Date")
-        cal = Calendar(cal_win, selectmode="day", date_pattern="yyyy-mm-dd")
-        cal.pack(padx=8, pady=8)
-
-        def set_date():
-            target_entry.delete(0, tk.END)
-            target_entry.insert(0, cal.get_date())
-            cal_win.destroy()
-
-        ttk.Button(cal_win, text="OK", command=set_date).pack(pady=6)
 
     # -------------------- Validation & CRUD --------------------
     def _validate(self, name, category, price_str, expiry_str):
@@ -290,17 +211,18 @@ class MedicinesWindow:
 
     def _save_new(self, entries, dialog):
         med_id = entries["ID"].get()
-        name = entries["Name"].get(); category = entries["Category"].get()
+        name = entries["Name"].get()
+        category = entries["Category"].get()
         product_mrp = entries["MRP"].get()
-        expiry = entries["Expiry (YYYY-MM-DD)"].get()
-        err = self._validate(name, category, product_mrp, expiry)
+        product_expiry = entries["Expiry (YYYY-MM-DD)"].get()
+        err = self._validate(name, category, product_mrp, product_expiry)
         if err:
             messagebox.showerror("Validation", err)
             return
         try:
             execute_query(
-                "INSERT INTO products (id,name,category,product_mrp,expiry) VALUES (?,?,?,?,?,?)",
-                (med_id, name.strip(), category.strip(), float(product_mrp), expiry)
+                "INSERT INTO products (id,name,category,product_mrp,product_expiry) VALUES (?,?,?,?,?)",
+                (med_id, name.strip(), category.strip(), float(product_mrp), product_expiry)
             )
             self.load_medicines()
             dialog.destroy()
@@ -310,18 +232,18 @@ class MedicinesWindow:
 
     def _update_existing(self, entries, dialog):
         med_id = entries["ID"].get()
-        name = entries["Name"].get(); 
+        name = entries["Name"].get()
         category = entries["Category"].get()
-        product_mrp = entries["MRP"].get();
-        expiry = entries["Expiry (YYYY-MM-DD)"].get()
-        err = self._validate(name, category, product_mrp, expiry)
+        product_mrp = entries["MRP"].get()
+        product_expiry = entries["Expiry (YYYY-MM-DD)"].get()
+        err = self._validate(name, category, product_mrp, product_expiry)
         if err:
             messagebox.showerror("Validation", err)
             return
         try:
             execute_query(
-                "UPDATE products SET name=?, category=?, product_mrp=?, expiry=? WHERE id=?",
-                (name.strip(), category.strip(), float(product_mrp), expiry, med_id)
+                "UPDATE products SET name=?, category=?, product_mrp=?, product_expiry=? WHERE id=?",
+                (name.strip(), category.strip(), float(product_mrp), product_expiry, med_id)
             )
             self.load_medicines()
             dialog.destroy()
@@ -349,20 +271,16 @@ class MedicinesWindow:
         if not file_path:
             return
         try:
-            rows = fetch_all("SELECT id,name,category,product_mrp,expiry FROM products ORDER BY id ASC")
+            rows = fetch_all("SELECT id,name,category,product_mrp,product_expiry FROM products ORDER BY id ASC")
             with open(file_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow(["ID", "Name", "Category", "MRP", "Expiry"])
                 for r in rows:
-                    # r is dict-like
                     if isinstance(r, dict):
                         writer.writerow([r.get("id"), r.get("name"), r.get("category"),
-                                         f"{float(r.get('product_mrp',0)):.2f}", r.get("expiry")])
+                                         f"{float(r.get('product_mrp',0)):.2f}", r.get("product_expiry")])
                     else:
-                        writer.writerow([r[0], r[1], r[2], f"{float(r[3]):.2f}", r[4], r[5]])
+                        writer.writerow([r[0], r[1], r[2], f"{float(r[3]):.2f}", r[4]])
             messagebox.showinfo("Export", "Exported successfully")
         except Exception as e:
             messagebox.showerror("Error", str(e))
-
-
-# End of modules/medicines.py
